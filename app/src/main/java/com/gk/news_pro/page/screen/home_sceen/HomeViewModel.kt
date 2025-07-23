@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.gk.news_pro.data.model.News
 import com.gk.news_pro.data.model.User
 import com.gk.news_pro.data.repository.NewsRepository
-import com.gk.news_pro.data.repository.UserRepository
+//import com.gk.news_pro.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -26,27 +26,27 @@ class HomeViewModel(
         fetchGeneralNews()
     }
 
-    fun testGetUser() {
-        val userRepository = UserRepository()
-        viewModelScope.launch {
-            try {
-                val user = userRepository.createUser(
-                    username = "duy test",
-                    email = "ttttesttttvvv@example.com",
-                    password = "test1234"
-                )
-                Log.d(TAG, "testGetUser: Create user successful: ${user?.email}, Password = ${user?.password}")
-            } catch (e: Exception) {
-                Log.e(TAG, "testGetUser: Error creating user: ${e.message}", e)
-            }
-        }
-    }
+//    fun testGetUser() {
+//        val userRepository = UserRepository()
+//        viewModelScope.launch {
+//            try {
+//                val user = userRepository.createUser(
+//                    username = "duy test",
+//                    email = "ttttesttttvvv@example.com",
+//                    password = "test1234"
+//                )
+//                Log.d(TAG, "testGetUser: Create user successful: ${user?.email}, Password = ${user?.password}")
+//            } catch (e: Exception) {
+//                Log.e(TAG, "testGetUser: Error creating user: ${e.message}", e)
+//            }
+//        }
+//    }
 
     fun fetchGeneralNews() {
         _newsState.value = NewsUiState.Loading
         viewModelScope.launch {
             try {
-                testGetUser()
+                //testGetUser()
                 val response = repository.getNews(
                     apiKey = "pub_832257f70990e247b185d0a5036ebffda6e10" //"pub_865207b1af8edb43a150aac59d2fcf96f8456"
                 )

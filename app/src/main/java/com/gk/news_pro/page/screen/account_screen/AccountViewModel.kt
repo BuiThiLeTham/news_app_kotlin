@@ -5,13 +5,11 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gk.news_pro.data.model.User
-import com.gk.news_pro.data.repository.UserRepository
-import com.google.firebase.auth.EmailAuthProvider
-import com.google.firebase.auth.FirebaseAuth
+import com.gk.news_pro.data.repository.AuthService
+import com.gk.news_pro.data.repository.UserService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import java.io.File
 
 class StringHelper {
@@ -22,7 +20,8 @@ class StringHelper {
 }
 
 class AccountViewModel(
-    private val userRepository: UserRepository,
+    private val userService: UserService,
+    private val authService: AuthService,
     private val context: Context,
     private val stringHelper: StringHelper = StringHelper()
 ) : ViewModel() {
@@ -61,7 +60,7 @@ class AccountViewModel(
                     return@launch
                 }
 
-                val currentUser = userRepository.getUser()
+                val currentUser = userService.getUser()
                 _user.value = currentUser
                 _uiState.value = AccountUiState.Success
                 Log.d("AccountViewModel", "Loaded user: ${currentUser?.email}")
@@ -95,13 +94,13 @@ class AccountViewModel(
                         return@launch
                     }
                 }
-                userRepository.updateUser(
+                userService.updateUser(
                     username = username?.takeIf { it.isNotBlank() },
                     email = email?.takeIf { it.isNotBlank() },
                     avatar = avatarUrl ?: _user.value?.avatar,
                     password = password?.takeIf { it.isNotBlank() }
                 )
-                val updatedUser = userRepository.getUser()
+                val updatedUser = userService.getUser()
                 _user.value = updatedUser
                 _uiState.value = AccountUiState.Success
                 Log.d("AccountViewModel", "User profile updated successfully")
@@ -117,7 +116,7 @@ class AccountViewModel(
     fun signOut() {
         viewModelScope.launch {
             try {
-                userRepository.signOut()
+                authService.logout()
                 _user.value = null
                 _uiState.value = AccountUiState.Success
                 Log.d("AccountViewModel", "User signed out")
@@ -131,19 +130,11 @@ class AccountViewModel(
     fun deleteAccount(password: String) {
         viewModelScope.launch {
             try {
-                val firebaseUser = FirebaseAuth.getInstance().currentUser
-                if (firebaseUser == null) {
-                    _uiState.value = AccountUiState.Error("Chưa đăng nhập")
-                    Log.e("AccountViewModel", "No user logged in")
-                    return@launch
-                }
-
-                // Re-authenticate user
-                val credential = EmailAuthProvider.getCredential(firebaseUser.email ?: "", password)
-                firebaseUser.reauthenticate(credential).await()
-
-                // Delete account
-                userRepository.deleteUser()
+                // Re-authenticate user with password
+                userService.reauthenticate(password)
+                // Delete account via API
+                userService.deleteUser()
+                authService.logout()
                 _user.value = null
                 _uiState.value = AccountUiState.Success
                 Log.d("AccountViewModel", "Account deleted successfully")

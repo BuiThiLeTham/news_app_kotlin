@@ -37,7 +37,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.gk.news_pro.data.model.User
-import com.gk.news_pro.data.repository.UserRepository
+import com.gk.news_pro.data.repository.AuthService
+import com.gk.news_pro.data.repository.UserService
 import com.gk.news_pro.page.main_viewmodel.ViewModelFactory
 import kotlinx.coroutines.launch
 import java.io.File
@@ -47,7 +48,8 @@ import java.net.URLEncoder
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountScreen(
-    userRepository: UserRepository,
+    userService: UserService,
+    authService: AuthService,
     onSignOut: () -> Unit,
     onNavigateToOfflineNews: () -> Unit,
     onNavigateToFavoriteScreen: () -> Unit,
@@ -55,7 +57,7 @@ fun AccountScreen(
     context: Context = LocalContext.current,
     viewModel: AccountViewModel = viewModel(
         factory = ViewModelFactory(
-            repositories = userRepository,
+            repositories = userService,
             context = context
         )
     )

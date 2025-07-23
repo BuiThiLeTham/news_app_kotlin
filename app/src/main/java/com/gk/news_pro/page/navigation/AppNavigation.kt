@@ -28,11 +28,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.gk.news_pro.data.model.News
+import com.gk.news_pro.data.repository.AuthService
 import com.gk.news_pro.data.repository.GeminiRepository
 import com.gk.news_pro.data.repository.HeyGenRepository
 import com.gk.news_pro.data.repository.NewsRepository
 import com.gk.news_pro.data.repository.RadioRepository
-import com.gk.news_pro.data.repository.UserRepository
+import com.gk.news_pro.data.repository.UserService
+import com.gk.news_pro.page.main_viewmodel.PrefsManager
 import com.gk.news_pro.page.main_viewmodel.ViewModelFactory
 import com.gk.news_pro.page.screen.account_screen.AccountScreen
 import com.gk.news_pro.page.screen.auth.LoginScreen
@@ -42,15 +44,12 @@ import com.gk.news_pro.page.screen.explore_sceen.ExploreScreen
 import com.gk.news_pro.page.screen.explore_sceen.ExploreViewModel
 import com.gk.news_pro.page.screen.favorite_screen.FavoriteScreen
 import com.gk.news_pro.page.screen.offline_list_news_screen.OfflineListNewsScreen
-//import com.gk.news_pro.page.screen.news_feed.NewsFeedScreen
 import com.gk.news_pro.page.screen.radio_screen.RadioScreen
 import com.gk.news_pro.page.screen.radio_screen.RadioViewModel
 import com.gk.news_pro.page.screen.radio_screen.components.MiniPlayer
 import com.gk.news_pro.page.utils.service.PlaybackState
 import com.gk.news_pro.utils.MediaPlayerManager
-import com.google.ai.client.generativeai.BuildConfig
 import com.google.gson.Gson
-import com.gk.news_pro.page.screen.about_screen.AboutScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
 import kotlinx.coroutines.launch
@@ -58,7 +57,6 @@ import kotlinx.coroutines.launch
 sealed class Screen(val route: String, val title: String, val icon: ImageVector? = null) {
     object Radio : Screen("radio", "Radio", Icons.Filled.PlayArrow)
     object Explore : Screen("explore", "Tin Tức", Icons.Filled.DateRange)
-//    object NewsFeed : Screen("news_feed", "Bảng Tin", Icons.Filled.Share)
     object OfflineNews : Screen("offline_news", "Tin Ngoại Tuyến", Icons.Filled.DateRange)
     object Favorite : Screen("favorite", "Yêu Thích", Icons.Filled.Favorite)
     object Account : Screen("account", "Tài Khoản", Icons.Filled.AccountCircle)
@@ -79,17 +77,17 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val bottomNavItems = listOf(Screen.Explore, Screen.Radio, Screen.Account)
     val context = LocalContext.current
+    val authService = AuthService(context)
+    val userService = UserService(authService.getToken())
     val newsRepository = NewsRepository()
     val geminiRepository = GeminiRepository()
-    val userRepository = UserRepository()
     val radioRepository = RadioRepository()
-//    val postRepository = PostRepository()
     val heyGenRepository = HeyGenRepository(context)
     val radioViewModel: RadioViewModel = viewModel(
-        factory = ViewModelFactory(listOf(radioRepository, userRepository))
+        factory = ViewModelFactory(listOf(radioRepository, userService), context)
     )
     val coroutineScope = rememberCoroutineScope()
-    val isLoggedIn by remember { mutableStateOf(userRepository.isLoggedIn()) }
+    val isLoggedIn by remember { mutableStateOf(authService.getToken() != null) }
     val startDestination = Screen.Explore.route
     val gson = Gson()
 
@@ -112,7 +110,7 @@ fun AppNavigation() {
                     items = bottomNavItems,
                     currentRoute = currentRoute,
                     onItemClick = { screen ->
-                        if (screen == Screen.Account && !userRepository.isLoggedIn()) {
+                        if (screen == Screen.Account && !isLoggedIn) {
                             Log.d("AppNavigation", "User not logged in, redirecting to Login")
                             navController.navigate(Screen.Login.route)
                         } else {
@@ -138,7 +136,8 @@ fun AppNavigation() {
             ) {
                 composable(Screen.Login.route) {
                     LoginScreen(
-                        userRepository = userRepository,
+                        userRepository = userService,
+                        authService = authService,
                         onLoginSuccess = {
                             Log.d("AppNavigation", "Login successful, navigating to Explore")
                             navController.navigate(Screen.Explore.route) {
@@ -152,7 +151,8 @@ fun AppNavigation() {
                 }
                 composable(Screen.Register.route) {
                     RegisterScreen(
-                        userRepository = userRepository,
+                        userRepository = userService,
+                        authService = authService,
                         onRegisterSuccess = {
                             Log.d("AppNavigation", "Register successful, navigating to Login")
                             navController.navigate(Screen.Login.route) {
@@ -166,7 +166,7 @@ fun AppNavigation() {
                 }
                 composable(Screen.Radio.route) {
                     RadioScreen(
-                        userRepository = userRepository,
+                        userRepository = userService,
                         viewModel = radioViewModel,
                         onStationClick = {
                             Log.d("AppNavigation", "Radio station clicked: ${it.name}")
@@ -176,12 +176,12 @@ fun AppNavigation() {
                 composable(Screen.Explore.route) {
                     val exploreViewModel: ExploreViewModel = viewModel(
                         factory = ViewModelFactory(
-                            repositories = listOf(newsRepository, userRepository, heyGenRepository),
+                            repositories = listOf(newsRepository, userService, heyGenRepository),
                             context = context
                         )
                     )
                     ExploreScreen(
-                        userRepository = userRepository,
+                        userRepository = userService,
                         context = context,
                         viewModel = exploreViewModel,
                         onNewsClick = { news ->
@@ -195,12 +195,6 @@ fun AppNavigation() {
                         }
                     )
                 }
-//                composable(Screen.NewsFeed.route) {
-//                    NewsFeedScreen(
-//                        userRepository = userRepository,
-//                        postRepository = postRepository
-//                    )
-//                }
                 composable(Screen.OfflineNews.route) {
                     Log.d("AppNavigation", "Navigating to OfflineListNewsScreen")
                     OfflineListNewsScreen(
@@ -220,7 +214,7 @@ fun AppNavigation() {
                     Log.d("AppNavigation", "Navigating to FavoriteScreen")
                     FavoriteScreen(
                         navController = navController,
-                        userRepository = userRepository,
+                        userRepository = userService,
                         onNewsClick = { news ->
                             try {
                                 val newsJson = gson.toJson(news)
@@ -234,10 +228,10 @@ fun AppNavigation() {
                 }
                 composable(Screen.Account.route) {
                     AccountScreen(
-                        userRepository = userRepository,
+                        userRepository = userService,
                         onSignOut = {
                             coroutineScope.launch {
-                                userRepository.signOut()
+                                authService.logout()
                                 Log.d("AppNavigation", "User logged out, navigating to Login")
                                 navController.navigate(Screen.Login.route) {
                                     popUpTo(navController.graph.startDestinationId) { inclusive = true }
@@ -284,9 +278,6 @@ fun AppNavigation() {
                     } catch (e: Exception) {
                         Log.e("NewsDetailScreen", "Error deserializing news: ${e.message}", e)
                         null
-                    }
-                    if (BuildConfig.DEBUG) {
-                        Log.d("NewsDetailScreen", "Received news: ${news?.title ?: "Not found"}")
                     }
                     if (news != null) {
                         NewsDetailScreen(

@@ -19,6 +19,12 @@ class AuthService(private val context: Context) {
         try {
             authApiService.register(user)
             Log.d(TAG, "register: Successfully registered user ${user.uid}")
+            login(user.email, user.password)?.let { token ->
+                with(prefs.edit()) {
+                    putString(KEY_TOKEN, token)
+                    apply()
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "register: Failed to register user ${user.uid}: ${e.message}", e)
             throw e

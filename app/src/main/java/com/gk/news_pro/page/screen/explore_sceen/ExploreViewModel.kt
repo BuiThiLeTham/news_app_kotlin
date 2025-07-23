@@ -16,10 +16,11 @@ import androidx.lifecycle.viewModelScope
 import com.gk.news_pro.MainActivity
 import com.gk.news_pro.R
 import com.gk.news_pro.data.model.News
+import com.gk.news_pro.data.repository.AuthService
 import com.gk.news_pro.data.repository.GeminiRepository
 import com.gk.news_pro.data.repository.HeyGenRepository
 import com.gk.news_pro.data.repository.NewsRepository
-import com.gk.news_pro.data.repository.UserRepository
+import com.gk.news_pro.data.repository.UserService
 import com.gk.news_pro.page.main_viewmodel.PrefsManager
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.delay
@@ -30,7 +31,8 @@ import kotlinx.coroutines.tasks.await
 
 class ExploreViewModel(
     private val newsRepository: NewsRepository,
-    private val userRepository: UserRepository,
+    private val userService: UserService,
+    private val authService: AuthService,
     private val prefsManager: PrefsManager,
     private val context: Context,
     private val geminiRepository: GeminiRepository = GeminiRepository(),
@@ -104,7 +106,7 @@ class ExploreViewModel(
 
             val intent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                putExtra("video_url", videoUrl) // Thêm URL video vào intent
+                putExtra("video_url", videoUrl)
             }
             val pendingIntent = PendingIntent.getActivity(
                 context,
@@ -131,7 +133,7 @@ class ExploreViewModel(
 
     fun checkAndGenerateDailyVideo() {
         viewModelScope.launch {
-            notificationSent = false // Đặt lại notificationSent khi bắt đầu tạo video mới
+            notificationSent = false
             val videoId = prefsManager.getVideoId()
             if (videoId != null) {
                 Log.d("ExploreViewModel", "Existing video_id found: $videoId, checking status immediately")
@@ -273,7 +275,6 @@ class ExploreViewModel(
                             script = _videoScriptState.value.let { if (it is VideoScriptState.Processing) it.script else "" },
                             videoUrl = result
                         )
-                        // Gửi thông báo nếu chưa gửi
                         if (!notificationSent) {
                             Log.d("ExploreViewModel", "Preparing to send notification. Last successful URL: ${prefsManager.getLastSuccessfulVideoUrl()}")
                             sendPushNotification(result)
@@ -311,9 +312,9 @@ class ExploreViewModel(
 
     private fun loadBookmarkedNews() {
         viewModelScope.launch {
-            if (userRepository.isLoggedIn()) {
+            if (authService.getToken() != null) {
                 try {
-                    val favoriteNews = userRepository.getFavoriteNewsList()
+                    val favoriteNews = userService.getFavoriteNewsList()
                     _bookmarkedNews.value = favoriteNews
                     Log.d("ExploreViewModel", "Loaded ${favoriteNews.size} bookmarked news")
                 } catch (e: Exception) {
@@ -359,149 +360,4 @@ class ExploreViewModel(
 
     fun fetchNewsByCategory(category: String) {
         _selectedCategory.value = category
-        _newsState.value = ExploreUiState.Loading
-        viewModelScope.launch {
-            try {
-                val response = newsRepository.getNews(
-                    apiKey = "pub_865207b1af8edb43a150aac59d2fcf96f8456",
-                    category = category
-                )
-                _newsState.value = ExploreUiState.Success(response.results ?: emptyList())
-                Log.d("ExploreViewModel", "Fetched ${response.results?.size ?: 0} news for category $category")
-            } catch (e: Exception) {
-                _newsState.value = ExploreUiState.Error(e.message ?: "Không thể tải tin tức")
-                Log.e("ExploreViewModel", "Error fetching news for category $category: ${e.message}", e)
-            }
-        }
-    }
-
-    fun searchNews(query: String) {
-        _newsState.value = ExploreUiState.Loading
-        viewModelScope.launch {
-            try {
-                val response = newsRepository.getNews(
-                    apiKey = "pub_865207b1af8edb43a150aac59d2fcf96f8456",
-                    query = query
-                )
-                _newsState.value = ExploreUiState.Success(response.results ?: emptyList())
-                Log.d("ExploreViewModel", "Fetched ${response.results?.size ?: 0} news for query $query")
-            } catch (e: Exception) {
-                _newsState.value = ExploreUiState.Error(e.message ?: "Không thể tìm kiếm tin tức")
-                Log.e("ExploreViewModel", "Error searching news for query $query: ${e.message}", e)
-            }
-        }
-    }
-
-    fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
-        Log.d("ExploreViewModel", "Updated search query: $query")
-    }
-
-    fun clearSearch() {
-        _searchQuery.value = ""
-        fetchGeneralNews()
-        Log.d("ExploreViewModel", "Cleared search query")
-    }
-
-    fun retry() {
-        if (searchQuery.value.isNotEmpty()) {
-            searchNews(searchQuery.value)
-        } else {
-            fetchGeneralNews()
-        }
-        Log.d("ExploreViewModel", "Retrying with query: ${searchQuery.value}")
-    }
-
-    fun toggleBookmark(news: News, isBookmarked: Boolean) {
-        viewModelScope.launch {
-            if (!userRepository.isLoggedIn()) {
-                Log.d("ExploreViewModel", "User not logged in, cannot toggle bookmark")
-                return@launch
-            }
-
-            try {
-                if (isBookmarked) {
-                    Log.d("ExploreViewModel", "Adding news ${news.article_id} to favorites")
-                    userRepository.saveFavoriteNews(news)
-                    _bookmarkedNews.value = _bookmarkedNews.value + news
-                } else {
-                    Log.d("ExploreViewModel", "Removing news ${news.article_id} from favorites")
-                    userRepository.removeFavoriteNews(news.article_id)
-                    _bookmarkedNews.value = _bookmarkedNews.value - news
-                }
-            } catch (e: Exception) {
-                Log.e("ExploreViewModel", "Error toggling bookmark for news ${news.article_id}: ${e.message}", e)
-            }
-        }
-    }
-
-    fun generateNewsVideo(newsList: List<News>) {
-        if (newsList.isEmpty()) {
-            _videoScriptState.value = VideoScriptState.Error("Không có tin tức để tạo video")
-            Log.e("ExploreViewModel", "News list is empty")
-            return
-        }
-        _videoScriptState.value = VideoScriptState.Loading
-        notificationSent = false // Đặt lại notificationSent khi tạo video mới
-        viewModelScope.launch {
-            try {
-                Log.d("ExploreViewModel", "Generating script for ${newsList.size} news items")
-                val script = geminiRepository.generateNewsVideoScript(newsList)
-                Log.d("ExploreViewModel", "Generated script (length: ${script.length}): $script")
-                if (script.isBlank() || script.startsWith("Lỗi")) {
-                    _videoScriptState.value = VideoScriptState.Error("Kịch bản không hợp lệ: $script")
-                    Log.e("ExploreViewModel", "Invalid script: $script")
-                    return@launch
-                }
-                _videoScriptState.value = VideoScriptState.Processing(script)
-                heyGenRepository.clearVideoId()
-                val result = heyGenRepository.generateVideo(script)
-                when (result) {
-                    is HeyGenRepository.Result.Success -> {
-                        prefsManager.saveVideoId(result.videoId)
-                        prefsManager.saveVideoCreationTime(System.currentTimeMillis())
-                        _videoScriptState.value = VideoScriptState.Processing(script)
-                        Log.d("ExploreViewModel", "Video creation started, video_id: ${result.videoId}")
-                        delay(3 * 60 * 1000L)
-                        checkVideoStatus(result.videoId)
-                    }
-                    is HeyGenRepository.Result.Error -> {
-                        Log.e("ExploreViewModel", "Video generation failed: ${result.message}")
-                        _videoScriptState.value = VideoScriptState.Error(result.message)
-                        val fallbackUrl = prefsManager.getLastSuccessfulVideoUrl() ?: defaultVideoUrl
-                        _latestVideoUrl.value = fallbackUrl
-                        _videoScriptState.value = VideoScriptState.Success(script = "Default script", videoUrl = fallbackUrl)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("ExploreViewModel", "Error generating video: ${e.message}", e)
-                _videoScriptState.value = VideoScriptState.Error(e.message ?: "Lỗi khi tạo video")
-                val fallbackUrl = prefsManager.getLastSuccessfulVideoUrl() ?: defaultVideoUrl
-                _latestVideoUrl.value = fallbackUrl
-                _videoScriptState.value = VideoScriptState.Success(script = "Default script", videoUrl = fallbackUrl)
-            }
-        }
-    }
-
-    fun clearLatestVideo() {
-        _latestVideoUrl.value = null
-        prefsManager.clearVideoId()
-        _videoScriptState.value = VideoScriptState.Idle
-        notificationSent = false // Đặt lại notificationSent khi xóa video
-        Log.d("ExploreViewModel", "Cleared latest video URL")
-    }
-}
-
-sealed class ExploreUiState {
-    object Loading : ExploreUiState()
-    data class Success(val news: List<News>) : ExploreUiState()
-    data class Error(val message: String) : ExploreUiState()
-}
-
-sealed class VideoScriptState {
-    object Idle : VideoScriptState()
-    object Loading : VideoScriptState()
-    data class Processing(val script: String) : VideoScriptState()
-    data class Success(val script: String, val videoUrl: String) : VideoScriptState()
-    data class Error(val message: String) : VideoScriptState()
-}
+        _newsState

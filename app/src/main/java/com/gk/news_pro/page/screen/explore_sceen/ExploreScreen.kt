@@ -40,8 +40,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gk.news_pro.data.model.News
+import com.gk.news_pro.data.repository.AuthService
 import com.gk.news_pro.data.repository.NewsRepository
-import com.gk.news_pro.data.repository.UserRepository
+import com.gk.news_pro.data.repository.UserService
 import com.gk.news_pro.page.components.NewsCard
 import com.gk.news_pro.page.main_viewmodel.PrefsManager
 import com.gk.news_pro.page.main_viewmodel.ViewModelFactory
@@ -52,11 +53,12 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen(
-    userRepository: UserRepository,
+    userService: UserService,
+    authService: AuthService,
     context: Context,
     viewModel: ExploreViewModel = viewModel(
         factory = ViewModelFactory(
-            repositories = listOf(NewsRepository(), userRepository),
+            repositories = listOf(NewsRepository(), userService, HeyGenRepository(context)),
             context = context
         )
     ),
@@ -325,7 +327,7 @@ fun ExploreScreen(
                             bookmarkedNews = bookmarkedNews,
                             onNewsClick = onNewsClick,
                             onBookmarkClick = { news, isBookmarked ->
-                                if (!userRepository.isLoggedIn() && isBookmarked) {
+                                if (authService.getToken() == null && isBookmarked) {
                                     showLoginPrompt = true
                                 } else {
                                     viewModel.toggleBookmark(news, isBookmarked)
@@ -353,7 +355,7 @@ fun ExploreScreen(
                                     news = news,
                                     onClick = { onNewsClick(news) },
                                     onBookmarkClick = { isBookmarked ->
-                                        if (!userRepository.isLoggedIn() && isBookmarked) {
+                                        if (authService.getToken() == null && isBookmarked) {
                                             showLoginPrompt = true
                                         } else {
                                             viewModel.toggleBookmark(news, isBookmarked)
@@ -396,7 +398,7 @@ fun ExploreScreen(
                                         news = news,
                                         onClick = { onNewsClick(news) },
                                         onBookmarkClick = { isBookmarked ->
-                                            if (!userRepository.isLoggedIn() && isBookmarked) {
+                                            if (authService.getToken() == null && isBookmarked) {
                                                 showLoginPrompt = true
                                             } else {
                                                 viewModel.toggleBookmark(news, isBookmarked)

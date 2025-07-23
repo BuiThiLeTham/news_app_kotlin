@@ -1,15 +1,11 @@
 package com.gk.news_pro.page.screen.auth
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.gk.news_pro.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
+import java.util.regex.Pattern
 
-class RegisterViewModel(
-    private val repository: UserRepository
-) : ViewModel() {
+class RegisterViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow<RegisterUiState>(RegisterUiState.Idle)
     val uiState: StateFlow<RegisterUiState> = _uiState
@@ -47,29 +43,32 @@ class RegisterViewModel(
             username.value.isBlank() || email.value.isBlank() || password.value.isBlank() || confirmPassword.value.isBlank() -> {
                 _uiState.value = RegisterUiState.Error("Vui lòng điền đầy đủ thông tin")
             }
+            !isValidEmail(email.value) -> {
+                _uiState.value = RegisterUiState.Error("Email không hợp lệ")
+            }
             password.value != confirmPassword.value -> {
                 _uiState.value = RegisterUiState.Error("Mật khẩu không khớp")
             }
+            password.value.length < 6 -> {
+                _uiState.value = RegisterUiState.Error("Mật khẩu phải có ít nhất 6 ký tự")
+            }
             else -> {
-                _uiState.value = RegisterUiState.Loading
-                viewModelScope.launch {
-                    try {
-                        val user = repository.createUser(username.value, email.value, password.value)
-                        if (user != null) {
-                            _uiState.value = RegisterUiState.Success
-                        } else {
-                            _uiState.value = RegisterUiState.Error("Đăng ký thất bại")
-                        }
-                    } catch (e: Exception) {
-                        _uiState.value = RegisterUiState.Error(e.message ?: "Đăng ký thất bại")
-                    }
-                }
+                _uiState.value = RegisterUiState.Success
+                // Ở đây có thể thêm logic gọi API hoặc xử lý đăng ký nếu cần
+                // Ví dụ: Gọi một API hoặc lưu dữ liệu vào SharedPreferences
             }
         }
     }
 
     fun resetUiState() {
         _uiState.value = RegisterUiState.Idle
+    }
+
+    private fun isValidEmail(email: String): Boolean {
+        val emailPattern = Pattern.compile(
+            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
+        )
+        return emailPattern.matcher(email).matches()
     }
 }
 
