@@ -1,8 +1,10 @@
 package com.gk.news_pro.data.repository
 
 import com.gk.news_pro.data.api.NewsApiService
+import com.gk.news_pro.data.api.RetrofitClient
 import com.gk.news_pro.data.model.NewsResponse
-import com.gk.news_pro.page.utils.RetrofitClient
+
+
 
 class NewsRepository {
     private val newsApiService: NewsApiService = RetrofitClient.newsRetrofit.create(NewsApiService::class.java)

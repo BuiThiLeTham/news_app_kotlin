@@ -3,13 +3,13 @@ package com.gk.news_pro.page.screen.auth
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gk.news_pro.data.repository.UserRepository
+import com.gk.news_pro.data.repository.AuthService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
-    private val repository: UserRepository
+    private val authService: AuthService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
@@ -38,33 +38,17 @@ class LoginViewModel(
         _uiState.value = LoginUiState.Loading
         viewModelScope.launch {
             try {
-                val user = repository.loginUser(email.value, password.value)
-                if (user != null) {
+                val token = authService.login(email.value, password.value)
+                if (token != null) {
                     _uiState.value = LoginUiState.Success
+                    Log.d("LoginViewModel", "Login successful, token: $token")
                 } else {
-                    _uiState.value = LoginUiState.Error("Đăng nhập thất bại: Người dùng không tồn tại")
+                    _uiState.value = LoginUiState.Error("Đăng nhập thất bại: Sai email hoặc mật khẩu")
+                    Log.e("LoginViewModel", "Login failed: No token returned")
                 }
             } catch (e: Exception) {
                 _uiState.value = LoginUiState.Error(e.message ?: "Đăng nhập thất bại")
-            }
-        }
-    }
-
-    fun signInWithGoogle(idToken: String) {
-        Log.d("LoginViewModel", "signInWithGoogle called with idToken=$idToken")
-        _uiState.value = LoginUiState.Loading
-        viewModelScope.launch {
-            try {
-                val user = repository.signInWithGoogle(idToken)
-                Log.d("LoginViewModel", "signInWithGoogle result: user=$user")
-                if (user != null) {
-                    _uiState.value = LoginUiState.Success
-                } else {
-                    _uiState.value = LoginUiState.Error("Đăng nhập Google thất bại")
-                }
-            } catch (e: Exception) {
-                Log.e("LoginViewModel", "signInWithGoogle failed: ${e.message}", e)
-                _uiState.value = LoginUiState.Error(e.message ?: "Đăng nhập Google thất bại")
+                Log.e("LoginViewModel", "Login error: ${e.message}", e)
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.gk.newsapp.data.api
+package com.gk.news_pro.data.api
 
 import com.gk.news_pro.data.model.Country
 import com.gk.news_pro.data.model.RadioStation

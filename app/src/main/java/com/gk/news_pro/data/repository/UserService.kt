@@ -7,7 +7,7 @@ import com.gk.news_pro.data.api.UserUpdateRequest
 import com.gk.news_pro.data.model.News
 import com.gk.news_pro.data.model.RadioStation
 import com.gk.news_pro.data.model.User
-import com.gk.newsapp.data.api.RetrofitClient
+import com.gk.news_pro.data.api.RetrofitClient
 import retrofit2.HttpException
 
 class UserService(private val token: String?) {
@@ -16,7 +16,7 @@ class UserService(private val token: String?) {
 
     suspend fun addUser(uid: String, user: User) {
         try {
-            userApiService.addUser(user.copy(uid = uid))
+            userApiService.addUser(user.copy(id = uid))
             Log.d(TAG, "addUser: Successfully saved user $uid")
         } catch (e: HttpException) {
             Log.e(TAG, "addUser: Failed with status ${e.code()}: ${e.message()}", e)
@@ -172,5 +172,16 @@ class UserService(private val token: String?) {
             Log.e(TAG, "updateFavoriteTopics: Failed to update topics for user $uid: ${e.message}", e)
             throw e
         }
+    }
+    suspend fun addFavoriteRadioStation(stationId: String) {
+        userApiService.addFavoriteRadio(stationId)
+    }
+
+    suspend fun removeFavoriteRadioStation(stationId: String) {
+        userApiService.removeFavoriteRadio(stationId)
+    }
+
+    suspend fun getFavoriteRadioStations(): List<RadioStation> {
+        return userApiService.getFavoriteRadios()
     }
 }

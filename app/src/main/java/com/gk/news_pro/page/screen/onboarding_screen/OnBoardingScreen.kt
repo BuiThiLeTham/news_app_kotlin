@@ -1,4 +1,4 @@
-package com.loc.newsapp.screen.onboarding_screen
+package com.gk.news_pro.screen.onboarding_screen
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*

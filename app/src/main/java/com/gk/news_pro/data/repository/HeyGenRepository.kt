@@ -7,11 +7,10 @@ import com.gk.news_pro.data.api.HeyGenApiService
 import com.gk.news_pro.data.api.HeyGenVideoRequest
 import com.gk.news_pro.data.api.VideoInput
 import com.gk.news_pro.data.api.CharacterSettings
-import com.gk.news_pro.page.utils.RetrofitClient
+import com.gk.news_pro.data.api.RetrofitClient
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import retrofit2.HttpException
 import java.io.IOException
 

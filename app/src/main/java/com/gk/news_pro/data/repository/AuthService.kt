@@ -4,9 +4,10 @@ import android.content.Context
 import android.util.Log
 import com.gk.news_pro.data.api.AuthApiService
 import com.gk.news_pro.data.api.AuthRequest
+import com.gk.news_pro.data.api.RetrofitClient
 
 import com.gk.news_pro.data.model.User
-import com.gk.newsapp.data.api.RetrofitClient
+
 
 class AuthService(private val context: Context) {
     private val authApiService = RetrofitClient.createService(AuthApiService::class.java)
@@ -18,7 +19,7 @@ class AuthService(private val context: Context) {
     suspend fun register(user: User) {
         try {
             authApiService.register(user)
-            Log.d(TAG, "register: Successfully registered user ${user.uid}")
+            Log.d(TAG, "register: Successfully registered user ${user.id}")
             login(user.email, user.password)?.let { token ->
                 with(prefs.edit()) {
                     putString(KEY_TOKEN, token)
@@ -26,7 +27,7 @@ class AuthService(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "register: Failed to register user ${user.uid}: ${e.message}", e)
+            Log.e(TAG, "register: Failed to register user ${user.id}: ${e.message}", e)
             throw e
         }
     }

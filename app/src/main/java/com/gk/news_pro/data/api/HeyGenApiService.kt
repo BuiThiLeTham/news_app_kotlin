@@ -8,10 +8,10 @@ import retrofit2.http.Query
 
 interface HeyGenApiService {
     @POST("api/external/video/generate")
-    suspend fun createVideo(@Body request: HeyGenVideoRequest): HeyGenVideoResponse
+    suspend fun createVideo(@Body request: String, request1: HeyGenVideoRequest): HeyGenVideoResponse
 
     @GET("api/external/video/status")
-    suspend fun getVideoStatus(@Query("videoId") videoId: String): HeyGenVideoStatusResponse
+    suspend fun getVideoStatus(@Query("videoId") videoId: String, videoId1: String): HeyGenVideoStatusResponse
 }
 
 data class HeyGenVideoRequest(

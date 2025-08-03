@@ -1,11 +1,17 @@
 package com.gk.news_pro.page.screen.auth
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.gk.news_pro.data.model.User
+import com.gk.news_pro.data.repository.AuthService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import java.util.regex.Pattern
 
-class RegisterViewModel : ViewModel() {
+class RegisterViewModel(
+    private val authService: AuthService
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RegisterUiState>(RegisterUiState.Idle)
     val uiState: StateFlow<RegisterUiState> = _uiState
@@ -53,9 +59,22 @@ class RegisterViewModel : ViewModel() {
                 _uiState.value = RegisterUiState.Error("Mật khẩu phải có ít nhất 6 ký tự")
             }
             else -> {
-                _uiState.value = RegisterUiState.Success
-                // Ở đây có thể thêm logic gọi API hoặc xử lý đăng ký nếu cần
-                // Ví dụ: Gọi một API hoặc lưu dữ liệu vào SharedPreferences
+                _uiState.value = RegisterUiState.Loading
+                viewModelScope.launch {
+                    try {
+                        authService.register(
+                            User(
+                                id = "", // Backend sẽ sinh ID
+                                email = email.value,
+                                password = password.value,
+                                username = username.value
+                            )
+                        )
+                        _uiState.value = RegisterUiState.Success
+                    } catch (e: Exception) {
+                        _uiState.value = RegisterUiState.Error(e.message ?: "Đăng ký thất bại")
+                    }
+                }
             }
         }
     }

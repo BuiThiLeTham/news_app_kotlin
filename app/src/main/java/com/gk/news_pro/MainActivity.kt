@@ -16,8 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.gk.news_pro.page.main_viewmodel.PrefsManager
 import com.gk.news_pro.page.navigation.AppNavigation
 import com.gk.news_pro.page.screen.splash_screen.SplashScreen
+import com.gk.news_pro.screen.onboarding_screen.OnBoardingScreen
 import com.gk.news_pro.ui.theme.NewsProTheme
-import com.loc.newsapp.screen.onboarding_screen.OnBoardingScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

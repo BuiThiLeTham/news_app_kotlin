@@ -6,6 +6,14 @@ import com.gk.news_pro.data.model.User
 import retrofit2.http.*
 
 interface UserApiService {
+    @POST("api/users/favorite-radio")
+    suspend fun addFavoriteRadio(@Body stationId: String)
+
+    @DELETE("api/users/favorite-radio/{stationId}")
+    suspend fun removeFavoriteRadio(@Path("stationId") stationId: String)
+
+    @GET("api/users/favorite-radio")
+    suspend fun getFavoriteRadios(): List<RadioStation>
     @POST("api/users")
     suspend fun addUser(@Body user: User)
 

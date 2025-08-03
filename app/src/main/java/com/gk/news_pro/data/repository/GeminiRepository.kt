@@ -1,10 +1,11 @@
 package com.gk.news_pro.data.repository
 
 import android.util.Log
+import com.gk.news_pro.data.api.RetrofitClient
 import com.gk.news_pro.data.model.News
 import com.gk.news_pro.data.service.GeminiApiService
 import com.gk.news_pro.data.service.GeminiResponse
-import com.gk.news_pro.page.utils.RetrofitClient
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
